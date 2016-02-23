@@ -5,7 +5,7 @@ struct SplayTree
 {
     shared_ptr<SplayTree> left, right;
     weak_ptr<SplayTree> parent;
-    
+
     SplayTree() = delete;
 
     SplayTree(int n_value)
@@ -17,9 +17,10 @@ struct SplayTree
         size = 1;
         rev = false;
         is_sorted = is_rev_sorted = true;
+        to_add = 0;
     }
 
-    int value, top_left, top_right, sum, size;
+    int value, top_left, top_right, sum, size, to_add;
     bool rev, is_sorted, is_rev_sorted;
 
 };
@@ -73,6 +74,44 @@ int GetSize(PtrTree root)
     return root->size;
 }
 
+void Update(PtrTree root)
+{
+    if (!IsExist(root))
+        return;
+
+    if (IsExist(root->left))
+        root->top_left = root->left->top_left + root->to_add;
+    else
+        root->top_left = root->value + root->to_add;
+
+    if (IsExist(root->right))
+        root->top_right = root->right->top_right + root->to_add;
+    else
+        root->top_right = root->value + root->to_add;
+
+    root->size = 1 + GetSize(root->left) + GetSize(root->right);
+    root->sum = root->value + GetSum(root->left) + GetSum(root->right) + root->to_add * root->size;
+
+    if (IsSorted(root->left) && IsSorted(root->right) &&
+        (!IsExist(root->left) || IsExist(root->left) && root->left->top_right <= root->value) &&
+        (!IsExist(root->right) || IsExist(root->right) && root->value <= root->right->top_left))
+    {
+        root->is_sorted = true;
+    }
+    else
+        root->is_sorted = false;
+
+    if (IsRevSorted(root->left) && IsRevSorted(root->right) &&
+        (!IsExist(root->left) || IsExist(root->left) && root->left->top_right >= root->value) &&
+        (!IsExist(root->right) || IsExist(root->right) && root->value >= root->right->top_left))
+    {
+        root->is_rev_sorted = true;
+    }
+    else
+        root->is_rev_sorted = false;
+
+}
+
 void Push(PtrTree root)
 {
     if (!IsExist(root))
@@ -110,44 +149,17 @@ void Push(PtrTree root)
         }
         root->rev = false;
     }
-}
-
-void Update(PtrTree root)
-{
-    if (!IsExist(root))
-        return;
-
-    if (IsExist(root->left))
-        root->top_left = root->left->top_left;
-    else 
-        root->top_left = root->value;
-
-    if (IsExist(root->right))
-        root->top_right = root->right->top_right;
-    else
-        root->top_right = root->value;
-
-    root->sum = root->value + GetSum(root->left) + GetSum(root->right);
-    root->size = 1 + GetSize(root->left) + GetSize(root->right);
-
-    if (IsSorted(root->left) && IsSorted(root->right) &&
-        (!IsExist(root->left) || IsExist(root->left) && root->left->top_right <= root->value) &&
-        (!IsExist(root->right) || IsExist(root->right) && root->value <= root->right->top_left))
+    if (root->to_add != 0)
     {
-        root->is_sorted = true;
+        root->value += root->to_add;
+        if (IsExist(root->left))
+            root->left->to_add += root->to_add;
+        if (IsExist(root->right))
+            root->right->to_add += root->to_add;
+        Update(root->left);
+        Update(root->right);
+        root->to_add = 0;
     }
-    else
-        root->is_sorted = false;
-
-    if (IsRevSorted(root->left) && IsRevSorted(root->right) &&
-        (!IsExist(root->left) || IsExist(root->left) && root->left->top_right >= root->value) &&
-        (!IsExist(root->right) || IsExist(root->right) && root->value >= root->right->top_left))
-    {
-        root->is_rev_sorted = true;
-    }
-    else
-        root->is_rev_sorted = false;
-
 }
 
 void KeepParent(PtrTree root)
@@ -279,6 +291,42 @@ PtrTree Find(PtrTree root, int count)
         return Find(root->left, count);
 }
 
+vector<PtrTree> Split(PtrTree root, int l, int r)
+{
+    PtrTree left, middle, right;
+
+    root = Splay(Find(root, l + 1));
+
+    left = root->left;
+    SetParent(left, weak_ptr<SplayTree>());
+    root->left = nullptr;
+    Update(root);
+
+    root = Splay(Find(root, r - l));
+
+    right = root->right;
+    SetParent(right, weak_ptr<SplayTree>());
+    root->right = nullptr;
+    Update(root);
+
+    middle = root;
+
+    return{ left, middle, right };
+}
+
+PtrTree Merge(PtrTree left, PtrTree right)
+{
+    if (!IsExist(left) || !IsExist(right))
+    {
+        return (IsExist(left) ? left : right);
+    }
+    right = Splay(Find(right, 1));
+    right->left = left;
+    KeepParent(right);
+    Update(right);
+    return right;
+}
+
 int CountRevSorted(PtrTree root)
 {
     Push(root);
@@ -317,6 +365,8 @@ int CountRevSorted(PtrTree root)
 
 PtrTree FindLeastBig(PtrTree root, int value)
 {
+    Push(root);
+
     if (!IsExist(root))
         return nullptr;
 
@@ -340,7 +390,7 @@ PtrTree GenPermutation(PtrTree root)
         root->rev ^= true;
         return root;
     }
-    
+
     int right_rev_sorted = CountRevSorted(root);
 
     int total_size = GetSize(root);
@@ -410,51 +460,26 @@ PtrTree GenPermutation(PtrTree root)
     return root;
 }
 
-PtrTree NextPermutation(PtrTree root, int l, int r)
+PtrTree SplayNextPermutation(PtrTree root, int l, int r)
 {
     PtrTree left, middle, right;
-    root = Splay(Find(root, l + 1));
-    
-    left = root->left;
-    SetParent(left, weak_ptr<SplayTree>());
-    root->left = nullptr;
+    auto v_split = Split(root, l, r);
+    left = v_split[0];
+    middle = v_split[1];
+    right = v_split[2];
 
-    root = Splay(Find(root, r - l));
+    middle = GenPermutation(middle);
 
-    right = root->right;
-    SetParent(right, weak_ptr<SplayTree>());
-    root->right = nullptr;
-
-    middle = GenPermutation(root);
-
-    if (IsExist(left))
-        left->right = middle;
-    else
-        left = middle;
-    KeepParent(left);
-
-    if (IsExist(right))
-        right->left = left;
-    else
-        right = left;
-    KeepParent(right);
-    return right;
+    return Merge(Merge(left, middle), right);
 }
 
 void PrintTree(PtrTree root)
 {
+    Push(root);
     if (!IsExist(root))
         return;
-    if (!root->rev)
-    {
-        PrintTree(root->left);
-        cout << root->value << ' ';
-        PrintTree(root->right);
-    }
-    else
-    {
-        PrintTree(root->right);
-        cout << root->value << ' ';
-        PrintTree(root->left);
-    }
+    PrintTree(root->left);
+    cout << root->value << ' ';
+    PrintTree(root->right);
+
 }

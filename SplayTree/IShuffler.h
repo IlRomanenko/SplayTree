@@ -10,4 +10,5 @@ public:
     virtual void AddValue(int l, int r, int value) = 0;
     virtual void NextPermutation(int l, int r) = 0;
     virtual bool CanPermutate() = 0;
+    virtual void Print() = 0;
 };
