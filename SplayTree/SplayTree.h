@@ -39,13 +39,6 @@ void SetParent(PtrTree child, pTree root)
         child->parent = root;
 }
 
-bool Rev(PtrTree root)
-{
-    if (!IsExist(root))
-        return false;
-    return root->rev;
-}
-
 bool IsSorted(PtrTree root)
 {
     if (!IsExist(root))
@@ -227,6 +220,8 @@ void LeftRotation(PtrTree root)
 
 PtrTree Splay(PtrTree vertex)
 {
+    if (!IsExist(vertex))
+        return nullptr;
     if (!IsExist(vertex->parent))
         return vertex;
     PtrTree parent = vertex->parent.lock(), gparent = parent->parent.lock();
@@ -291,6 +286,41 @@ PtrTree Find(PtrTree root, int count)
         return Find(root->left, count);
 }
 
+void ReleaseChild(PtrTree root)
+{
+    if (!IsExist(root))
+        return;
+    if (IsExist(root->left))
+        root->left->parent = pTree();
+    if (IsExist(root->right))
+        root->right->parent = pTree();
+}
+
+void Split(PtrTree root, PtrTree &left, PtrTree &right, int count)
+{
+    Push(root);
+    ReleaseChild(root);
+    if (!IsExist(root))
+    {
+        left = right = nullptr;
+        return;
+    }
+    if (GetSize(root->left) + 1 <= count)
+    {
+        Split(root->right, root->right, right, count - 1 - GetSize(root->left));
+        left = root;
+    }
+    else
+    {
+        Split(root->left, left, root->left, count);
+        right = root;
+    }
+    KeepParent(left);
+    KeepParent(right);
+    Update(left);
+    Update(right);
+}
+
 vector<PtrTree> Split(PtrTree root, int l, int r)
 {
     PtrTree left, middle, right;
@@ -329,13 +359,17 @@ PtrTree Merge(PtrTree left, PtrTree right)
 
 int CountRevSorted(PtrTree root)
 {
+    if (!IsExist(root))
+        return 0;
+
     Push(root);
     Push(root->left);
     Push(root->right);
+    Update(root->left);
+    Update(root->right);
+    Update(root);
 
-    if (!IsExist(root))
-        return 0;
-    if (root->is_rev_sorted)
+    if (IsRevSorted(root))
         return root->size;
     int result = 0;
     if (IsRevSorted(root->right))
@@ -398,7 +432,7 @@ PtrTree GenPermutation(PtrTree root)
     PtrTree left_part = Splay(Find(root, total_size - right_rev_sorted));
     PtrTree right_part = left_part->right;
     left_part->right = nullptr;
-    right_part->parent.reset();
+    right_part->parent = pTree();
     Update(left_part);
     Update(right_part);
 
@@ -410,7 +444,7 @@ PtrTree GenPermutation(PtrTree root)
 
         pivot = left_part->right;
         left_part->right = nullptr;
-        pivot->parent.reset();
+        pivot->parent = pTree();
         Update(pivot);
         Update(left_part);
 
@@ -462,15 +496,11 @@ PtrTree GenPermutation(PtrTree root)
 
 PtrTree SplayNextPermutation(PtrTree root, int l, int r)
 {
-    PtrTree left, middle, right;
     auto v_split = Split(root, l, r);
-    left = v_split[0];
-    middle = v_split[1];
-    right = v_split[2];
 
-    middle = GenPermutation(middle);
+    v_split[1] = GenPermutation(v_split[1]);
 
-    return Merge(Merge(left, middle), right);
+    return Merge(Merge(v_split[0], v_split[1]), v_split[2]);
 }
 
 void PrintTree(PtrTree root)

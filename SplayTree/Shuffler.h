@@ -20,7 +20,7 @@ public:
     int GetSum(int l, int r) override
     {
         PtrTree left, right, middle;
-        auto v_split = Split(root, l, r);
+        auto v_split = Split(root, l, r + 1);
         left = v_split[0];
         middle = v_split[1];
         right = v_split[2];
@@ -39,8 +39,17 @@ public:
             root = Add(root, value);
             return;
         }
-        root = Splay(Find(root, position));
-        root = Add(root, value);
+        PtrTree left, right;
+        Split(root, left, right, position);
+        root = Merge(Merge(left, PtrTree(new SplayTree(value))), right);
+        /*
+        root = Splay(Find(root, position + 1));
+        PtrTree left, right;
+        left = root->left;
+        SetParent(left, pTree());
+        root->left = nullptr;
+        Update(root);
+        root = Merge(Merge(left, PtrTree(new SplayTree(value))), root);*/
     }
 
     void Replace(int position, int value) override
@@ -52,16 +61,16 @@ public:
 
     void AddValue(int l, int r, int value) override
     {
-        auto v_split = Split(root, l, r);
+        auto v_split = Split(root, l, r + 1);
         v_split[1]->to_add += value;
-        Push(v_split[1]);
         Update(v_split[1]);
+        Push(v_split[1]);
         root = Merge(Merge(v_split[0], v_split[1]), v_split[2]);
     }
 
     void NextPermutation(int l, int r) override
     {
-        root = SplayNextPermutation(root, l, r);
+        root = SplayNextPermutation(root, l, r + 1);
     }
 
     bool CanPermutate() override
@@ -73,5 +82,10 @@ public:
     void Print() override
     {
         PrintTree(root);
+    }
+
+    int Size()
+    {
+        return GetSize(root);
     }
 };
