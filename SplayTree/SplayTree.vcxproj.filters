@@ -35,5 +35,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="output.txt" />
+    <Text Include="simple.txt" />
   </ItemGroup>
 </Project>

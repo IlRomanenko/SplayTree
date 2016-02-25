@@ -43,6 +43,12 @@ bool IsSorted(PtrTree root)
 {
     if (!IsExist(root))
         return true;
+    if (root->rev)
+    {
+        if (root->size == 1)
+            return true;
+        return !root->is_sorted;
+    }
     return root->is_sorted;
 }
 
@@ -50,6 +56,12 @@ bool IsRevSorted(PtrTree root)
 {
     if (!IsExist(root))
         return true;
+    if (root->rev)
+    {
+        if (root->size == 1)
+            return true;
+        return !root->is_rev_sorted;
+    }
     return root->is_rev_sorted;
 }
 
@@ -71,30 +83,18 @@ void CheckBoundValues(PtrTree root)
 {
     if (!IsExist(root))
         return;
-    if (root->rev)
-    {
-        if (IsExist(root->left))
-            root->top_right = root->left->top_left + root->to_add;
-        else
-            root->top_right = root->value + root->to_add;
-
-        if (IsExist(root->right))
-            root->top_left = root->right->top_right + root->to_add;
-        else
-            root->top_left = root->value + root->to_add;
-    }
+    if (IsExist(root->left))
+        root->top_left = root->left->top_left + root->to_add;
     else
-    {
-        if (IsExist(root->left))
-            root->top_left = root->left->top_left + root->to_add;
-        else
-            root->top_left = root->value + root->to_add;
+        root->top_left = root->value + root->to_add;
 
-        if (IsExist(root->right))
-            root->top_right = root->right->top_right + root->to_add;
-        else
-            root->top_right = root->value + root->to_add;
-    }
+    if (IsExist(root->right))
+        root->top_right = root->right->top_right + root->to_add;
+    else
+        root->top_right = root->value + root->to_add;
+
+    if (root->rev)
+        swap(root->top_left, root->top_right);
 }
 
 void LockNode(PtrTree root)
@@ -110,12 +110,14 @@ void LockNode(PtrTree root)
             if (root->left->is_sorted)
             {
                 root->left->is_rev_sorted = true;
-                root->left->is_sorted = false;
+                if (root->left->size != 1)
+                    root->left->is_sorted = false;
             }
             if (root->left->is_rev_sorted)
             {
                 root->left->is_sorted = true;
-                root->left->is_rev_sorted = false;
+                if (root->left->size != 1)
+                    root->left->is_rev_sorted = false;
             }
         }
         if (IsExist(root->right))
@@ -124,12 +126,14 @@ void LockNode(PtrTree root)
             if (root->right->is_sorted)
             {
                 root->right->is_rev_sorted = true;
-                root->right->is_sorted = false;
+                if (root->right->size != 1)
+                    root->right->is_sorted = false;
             }
             if (root->right->is_rev_sorted)
             {
                 root->right->is_sorted = true;
-                root->right->is_rev_sorted = false;
+                if (root->right->size != 1)
+                    root->right->is_rev_sorted = false;
             }
         }
         root->rev = false;
@@ -350,7 +354,7 @@ vector<PtrTree> Split(PtrTree root, int l, int r)
 
     root = Splay(Find(root, r - l));
 
-    
+
     right = root->right;
     SetParent(right, weak_ptr<SplayTree>());
     root->right = nullptr;
@@ -421,7 +425,7 @@ PtrTree FindLeastBig(PtrTree root, int value)
         return nullptr;
 
     PtrTree result = nullptr;
-    if (root->value >= value)
+    if (root->value > value)
     {
         result = FindLeastBig(root->right, value);
         if (!IsExist(result))
@@ -490,14 +494,13 @@ PtrTree GenPermutation(PtrTree root)
         pivot = left_part;
 
         right_part = Splay(FindLeastBig(right_part, pivot->value));
-
         pivot->left = right_part->left;
         pivot->right = right_part->right;
         right_part->left = right_part->right = nullptr;
         KeepParent(pivot);
-
-        pivot->rev = true;
         LockNode(pivot);
+        pivot->rev = true;
+
         LockNode(right_part);
 
         right_part->right = pivot;

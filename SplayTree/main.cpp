@@ -5,10 +5,11 @@
 
 void SimpleTestSplay()
 {
+    freopen("simple.txt", "w", stdout);
     Shuffler root;
     for (int i = 0; i < 4; i++)
     {
-        root.Insert(i, i - 1);
+        root.Insert(i, i + 1);
     }
 
     do
@@ -20,13 +21,16 @@ void SimpleTestSplay()
 
     root.Print();
     cout << endl << endl;
-    cout << root.GetSum(3, 3);
-    cout << endl << endl;
-    cout << root.GetSum(2, 2);
-    cout << endl << endl;
-    cout << root.GetSum(1, 1);
-    cout << endl << endl;
-    cout << root.GetSum(2, 3);
+    vector<int> v;
+    for (int i = 0; i < 4; i++)
+        v.push_back(i + 1);
+
+    do
+    {
+        for_each(v.begin(), v.end(), [](int x) { cout << x << ' '; });
+        cout << endl;
+    } while (next_permutation(v.begin(), v.end()));
+    fclose(stdout);
 }
 
 void Error(vector<int> &vect, Shuffler &shuffler)
@@ -48,7 +52,7 @@ void TestSplay(int amount_operations)
 {
     int oper, l, r, value;
 
-    const int MaxValue = 10;
+    const int MaxValue = 1000000;
 
     for (int i = 0; i < amount_operations; i++)
     {
@@ -72,8 +76,8 @@ void TestSplay(int amount_operations)
         }
         value = random(engine) % MaxValue;
 
-        /*dbg(
-        cout << "before " << oper << endl << endl;
+       /* dbg(
+        cout << "before " << oper << "   i = " << i << endl << endl;
         shuffler.Print();
         cout << endl << endl;
         for_each(vect.begin(), vect.end(), [](int x) { cout << x << ' '; });
@@ -93,8 +97,8 @@ void TestSplay(int amount_operations)
             shuffler.Insert(l, value);
             break;
         case 2:
-            //vect[l] = value;
-            //shuffler.Replace(l, value);
+            vect[l] = value;
+            shuffler.Replace(l, value);
             break;
         case 3:
             //for_each(vect.begin() + l, vect.begin() + r + 1, [value](int &x) mutable { x += value; });
@@ -124,14 +128,8 @@ int main()
 {
     //freopen("output.txt", "w", stdout);
     //SimpleTestSplay();
-    try
-    {
-        TestSplay(10000);
-    }
-    catch (exception e)
-    {
-        Error(vect, shuffler);
-    }
+    TestSplay(10000);
+    
     system("pause");
     return 0;
 }
