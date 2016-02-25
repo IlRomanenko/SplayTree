@@ -405,7 +405,7 @@ PtrTree FindLeastBig(PtrTree root, int value)
         return nullptr;
 
     PtrTree result = nullptr;
-    if (root->value >= value)
+    if (root->value > value)
     {
         result = FindLeastBig(root->right, value);
         if (!IsExist(result))
