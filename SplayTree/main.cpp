@@ -48,6 +48,8 @@ void TestSplay(int amount_operations)
 {
     int oper, l, r, value;
 
+    const int MaxValue = 10;
+
     for (int i = 0; i < amount_operations; i++)
     {
         //Sum(l, r)
@@ -68,7 +70,7 @@ void TestSplay(int amount_operations)
             if (l > r)
                 swap(l, r);
         }
-        value = random(engine);
+        value = random(engine) % MaxValue;
 
         /*dbg(
         cout << "before " << oper << endl << endl;
@@ -106,7 +108,14 @@ void TestSplay(int amount_operations)
         if (shuffler.Size() != vect.size())
         {
             Error(vect, shuffler);
-            assert(false, "Bad size");
+            cout << "Bad size";
+            return;
+        }
+        if (shuffler.GetSum(0, vect.size() - 1) != accumulate(vect.begin(), vect.end(), 0))
+        {
+            Error(vect, shuffler);
+            cout << "Bad sum";
+            return;
         }
     }
 }

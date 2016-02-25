@@ -57,7 +57,7 @@ int GetSum(PtrTree root)
 {
     if (!IsExist(root))
         return 0;
-    return root->sum;
+    return root->sum + root->to_add * root->size;
 }
 
 int GetSize(PtrTree root)
@@ -67,45 +67,37 @@ int GetSize(PtrTree root)
     return root->size;
 }
 
-void Update(PtrTree root)
+void CheckBoundValues(PtrTree root)
 {
     if (!IsExist(root))
         return;
-
-    if (IsExist(root->left))
-        root->top_left = root->left->top_left + root->to_add;
-    else
-        root->top_left = root->value + root->to_add;
-
-    if (IsExist(root->right))
-        root->top_right = root->right->top_right + root->to_add;
-    else
-        root->top_right = root->value + root->to_add;
-
-    root->size = 1 + GetSize(root->left) + GetSize(root->right);
-    root->sum = root->value + GetSum(root->left) + GetSum(root->right) + root->to_add * root->size;
-
-    if (IsSorted(root->left) && IsSorted(root->right) &&
-        (!IsExist(root->left) || IsExist(root->left) && root->left->top_right <= root->value) &&
-        (!IsExist(root->right) || IsExist(root->right) && root->value <= root->right->top_left))
+    if (root->rev)
     {
-        root->is_sorted = true;
+        if (IsExist(root->left))
+            root->top_right = root->left->top_left + root->to_add;
+        else
+            root->top_right = root->value + root->to_add;
+
+        if (IsExist(root->right))
+            root->top_left = root->right->top_right + root->to_add;
+        else
+            root->top_left = root->value + root->to_add;
     }
     else
-        root->is_sorted = false;
-
-    if (IsRevSorted(root->left) && IsRevSorted(root->right) &&
-        (!IsExist(root->left) || IsExist(root->left) && root->left->top_right >= root->value) &&
-        (!IsExist(root->right) || IsExist(root->right) && root->value >= root->right->top_left))
     {
-        root->is_rev_sorted = true;
-    }
-    else
-        root->is_rev_sorted = false;
+        if (IsExist(root->left))
+            root->top_left = root->left->top_left + root->to_add;
+        else
+            root->top_left = root->value + root->to_add;
 
+        if (IsExist(root->right))
+            root->top_right = root->right->top_right + root->to_add;
+        else
+            root->top_right = root->value + root->to_add;
+    }
 }
 
-void Push(PtrTree root)
+void LockNode(PtrTree root)
 {
     if (!IsExist(root))
         return;
@@ -142,6 +134,10 @@ void Push(PtrTree root)
         }
         root->rev = false;
     }
+
+    root->size = 1 + GetSize(root->left) + GetSize(root->right);
+    root->sum = root->value + GetSum(root->left) + GetSum(root->right) + root->to_add * root->size;
+
     if (root->to_add != 0)
     {
         root->value += root->to_add;
@@ -149,10 +145,30 @@ void Push(PtrTree root)
             root->left->to_add += root->to_add;
         if (IsExist(root->right))
             root->right->to_add += root->to_add;
-        Update(root->left);
-        Update(root->right);
         root->to_add = 0;
     }
+
+    CheckBoundValues(root->left);
+    CheckBoundValues(root->right);
+    CheckBoundValues(root);
+
+    if (IsSorted(root->left) && IsSorted(root->right) &&
+        (!IsExist(root->left) || IsExist(root->left) && root->left->top_right <= root->value) &&
+        (!IsExist(root->right) || IsExist(root->right) && root->value <= root->right->top_left))
+    {
+        root->is_sorted = true;
+    }
+    else
+        root->is_sorted = false;
+
+    if (IsRevSorted(root->left) && IsRevSorted(root->right) &&
+        (!IsExist(root->left) || IsExist(root->left) && root->left->top_right >= root->value) &&
+        (!IsExist(root->right) || IsExist(root->right) && root->value >= root->right->top_left))
+    {
+        root->is_rev_sorted = true;
+    }
+    else
+        root->is_rev_sorted = false;
 }
 
 void KeepParent(PtrTree root)
@@ -188,8 +204,8 @@ void RightRotation(PtrTree root)
     SetParent(root, child);
     KeepParent(child);
     KeepParent(root);
-    Update(root);
-    Update(child);
+    LockNode(root);
+    LockNode(child);
 }
 
 void LeftRotation(PtrTree root)
@@ -214,8 +230,8 @@ void LeftRotation(PtrTree root)
     SetParent(root, child);
     KeepParent(child);
     KeepParent(root);
-    Update(root);
-    Update(child);
+    LockNode(root);
+    LockNode(child);
 }
 
 PtrTree Splay(PtrTree vertex)
@@ -226,9 +242,9 @@ PtrTree Splay(PtrTree vertex)
         return vertex;
     PtrTree parent = vertex->parent.lock(), gparent = parent->parent.lock();
 
-    Push(gparent);
-    Push(parent);
-    Push(vertex);
+    LockNode(gparent);
+    LockNode(parent);
+    LockNode(vertex);
 
     if (!IsExist(gparent))
     {
@@ -269,13 +285,13 @@ PtrTree Add(PtrTree root, int key)
     PtrTree n_root = shared_ptr<SplayTree>(new SplayTree(key));
     n_root->left = root;
     SetParent(root, n_root);
-    Update(n_root);
+    LockNode(n_root);
     return n_root;
 }
 
 PtrTree Find(PtrTree root, int count)
 {
-    Push(root);
+    LockNode(root);
     if (!IsExist(root))
         return root;
     if (GetSize(root->left) + 1 == count)
@@ -298,7 +314,7 @@ void ReleaseChild(PtrTree root)
 
 void Split(PtrTree root, PtrTree &left, PtrTree &right, int count)
 {
-    Push(root);
+    LockNode(root);
     ReleaseChild(root);
     if (!IsExist(root))
     {
@@ -317,8 +333,8 @@ void Split(PtrTree root, PtrTree &left, PtrTree &right, int count)
     }
     KeepParent(left);
     KeepParent(right);
-    Update(left);
-    Update(right);
+    LockNode(left);
+    LockNode(right);
 }
 
 vector<PtrTree> Split(PtrTree root, int l, int r)
@@ -330,14 +346,15 @@ vector<PtrTree> Split(PtrTree root, int l, int r)
     left = root->left;
     SetParent(left, weak_ptr<SplayTree>());
     root->left = nullptr;
-    Update(root);
+    LockNode(root);
 
     root = Splay(Find(root, r - l));
 
+    
     right = root->right;
     SetParent(right, weak_ptr<SplayTree>());
     root->right = nullptr;
-    Update(root);
+    LockNode(root);
 
     middle = root;
 
@@ -346,6 +363,8 @@ vector<PtrTree> Split(PtrTree root, int l, int r)
 
 PtrTree Merge(PtrTree left, PtrTree right)
 {
+    LockNode(left);
+    LockNode(right);
     if (!IsExist(left) || !IsExist(right))
     {
         return (IsExist(left) ? left : right);
@@ -353,7 +372,7 @@ PtrTree Merge(PtrTree left, PtrTree right)
     right = Splay(Find(right, 1));
     right->left = left;
     KeepParent(right);
-    Update(right);
+    LockNode(right);
     return right;
 }
 
@@ -362,12 +381,9 @@ int CountRevSorted(PtrTree root)
     if (!IsExist(root))
         return 0;
 
-    Push(root);
-    Push(root->left);
-    Push(root->right);
-    Update(root->left);
-    Update(root->right);
-    Update(root);
+    LockNode(root);
+    LockNode(root->left);
+    LockNode(root->right);
 
     if (IsRevSorted(root))
         return root->size;
@@ -399,7 +415,7 @@ int CountRevSorted(PtrTree root)
 
 PtrTree FindLeastBig(PtrTree root, int value)
 {
-    Push(root);
+    LockNode(root);
 
     if (!IsExist(root))
         return nullptr;
@@ -418,10 +434,11 @@ PtrTree FindLeastBig(PtrTree root, int value)
 
 PtrTree GenPermutation(PtrTree root)
 {
-    Push(root);
+    LockNode(root);
     if (root->is_rev_sorted)
     {
         root->rev ^= true;
+        LockNode(root);
         return root;
     }
 
@@ -433,8 +450,8 @@ PtrTree GenPermutation(PtrTree root)
     PtrTree right_part = left_part->right;
     left_part->right = nullptr;
     right_part->parent = pTree();
-    Update(left_part);
-    Update(right_part);
+    LockNode(left_part);
+    LockNode(right_part);
 
 
     PtrTree pivot = nullptr;
@@ -445,8 +462,8 @@ PtrTree GenPermutation(PtrTree root)
         pivot = left_part->right;
         left_part->right = nullptr;
         pivot->parent = pTree();
-        Update(pivot);
-        Update(left_part);
+        LockNode(pivot);
+        LockNode(left_part);
 
         right_part = Splay(FindLeastBig(right_part, pivot->value));
 
@@ -456,17 +473,16 @@ PtrTree GenPermutation(PtrTree root)
         KeepParent(pivot);
 
         pivot->rev = true;
-        Push(pivot);
-        Update(right_part);
-        Update(pivot);
+        LockNode(pivot);
+        LockNode(right_part);
 
         right_part->right = pivot;
         KeepParent(right_part);
-        Update(right_part);
+        LockNode(right_part);
 
         left_part->right = right_part;
         KeepParent(left_part);
-        Update(left_part);
+        LockNode(left_part);
         root = left_part;
     }
     else
@@ -481,13 +497,12 @@ PtrTree GenPermutation(PtrTree root)
         KeepParent(pivot);
 
         pivot->rev = true;
-        Push(pivot);
-        Update(right_part);
-        Update(pivot);
+        LockNode(pivot);
+        LockNode(right_part);
 
         right_part->right = pivot;
         KeepParent(right_part);
-        Update(right_part);
+        LockNode(right_part);
 
         root = right_part;
     }
@@ -505,11 +520,10 @@ PtrTree SplayNextPermutation(PtrTree root, int l, int r)
 
 void PrintTree(PtrTree root)
 {
-    Push(root);
+    LockNode(root);
     if (!IsExist(root))
         return;
     PrintTree(root->left);
     cout << root->value << ' ';
     PrintTree(root->right);
-
 }

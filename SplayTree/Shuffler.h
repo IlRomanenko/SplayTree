@@ -56,15 +56,14 @@ public:
     {
         root = Splay(Find(root, position + 1));
         root->value = value;
-        Update(root);
+        LockNode(root);
     }
 
     void AddValue(int l, int r, int value) override
     {
         auto v_split = Split(root, l, r + 1);
         v_split[1]->to_add += value;
-        Update(v_split[1]);
-        Push(v_split[1]);
+        LockNode(v_split[1]);
         root = Merge(Merge(v_split[0], v_split[1]), v_split[2]);
     }
 
@@ -75,7 +74,7 @@ public:
 
     bool CanPermutate() override
     {
-        Push(root);
+        LockNode(root);
         return !root->is_rev_sorted;
     }
 
