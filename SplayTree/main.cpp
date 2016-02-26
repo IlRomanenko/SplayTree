@@ -5,10 +5,11 @@
 
 void SimpleTestSplay()
 {
+    freopen("simple.txt", "w", stdout);
     Shuffler root;
     for (int i = 0; i < 4; i++)
     {
-        root.Insert(i, i - 1);
+        root.Insert(i, i + 1);
     }
 
     do
@@ -20,13 +21,16 @@ void SimpleTestSplay()
 
     root.Print();
     cout << endl << endl;
-    cout << root.GetSum(3, 3);
-    cout << endl << endl;
-    cout << root.GetSum(2, 2);
-    cout << endl << endl;
-    cout << root.GetSum(1, 1);
-    cout << endl << endl;
-    cout << root.GetSum(2, 3);
+    vector<int> v;
+    for (int i = 0; i < 4; i++)
+        v.push_back(i + 1);
+
+    do
+    {
+        for_each(v.begin(), v.end(), [](int x) { cout << x << ' '; });
+        cout << endl;
+    } while (next_permutation(v.begin(), v.end()));
+    fclose(stdout);
 }
 
 void Error(vector<int> &vect, Shuffler &shuffler)
@@ -42,11 +46,13 @@ void Error(vector<int> &vect, Shuffler &shuffler)
 Shuffler shuffler;
 vector<int> vect;
 uniform_int_distribution<int> random;
-default_random_engine engine;
+default_random_engine engine(time(NULL));
 
 void TestSplay(int amount_operations)
 {
     int oper, l, r, value;
+
+    const int MaxValue = 100000;
 
     for (int i = 0; i < amount_operations; i++)
     {
@@ -68,12 +74,14 @@ void TestSplay(int amount_operations)
             if (l > r)
                 swap(l, r);
         }
-        value = random(engine);
+        value = random(engine) % MaxValue;
 
-        /*dbg(
-        cout << "before " << oper << endl << endl;
+       /* dbg(
+        cout << "before " << oper << "   i = " << i << endl << endl;
+        cout << "shuffler = ";
         shuffler.Print();
         cout << endl << endl;
+        cout << "vector   = ";
         for_each(vect.begin(), vect.end(), [](int x) { cout << x << ' '; });
         cout << endl << endl << endl << endl;
         );*/
@@ -82,6 +90,7 @@ void TestSplay(int amount_operations)
         case 0:
             if (accumulate(vect.begin() + l, vect.begin() + r + 1, 0) != shuffler.GetSum(l, r))
             {
+                cout << "error number = " << i << " sum with l = " << l << " and r = " << r << endl;
                 Error(vect, shuffler);
                 return;
             }
@@ -91,12 +100,12 @@ void TestSplay(int amount_operations)
             shuffler.Insert(l, value);
             break;
         case 2:
-            //vect[l] = value;
-            //shuffler.Replace(l, value);
+            vect[l] = value;
+            shuffler.Replace(l, value);
             break;
         case 3:
-            //for_each(vect.begin() + l, vect.begin() + r + 1, [value](int &x) mutable { x += value; });
-            //shuffler.AddValue(l, r, value);
+            for_each(vect.begin() + l, vect.begin() + r + 1, [value](int &x) mutable { x += value; });
+            shuffler.AddValue(l, r, value);
             break;
         case 4:
             next_permutation(vect.begin() + l, vect.begin() + r + 1);
@@ -106,7 +115,14 @@ void TestSplay(int amount_operations)
         if (shuffler.Size() != vect.size())
         {
             Error(vect, shuffler);
-            assert(false, "Bad size");
+            cout << "Bad size";
+            return;
+        }
+        if (shuffler.GetSum(0, vect.size() - 1) != accumulate(vect.begin(), vect.end(), 0))
+        {
+            Error(vect, shuffler);
+            cout << "Bad sum";
+            return;
         }
     }
 }
@@ -115,14 +131,8 @@ int main()
 {
     //freopen("output.txt", "w", stdout);
     //SimpleTestSplay();
-    try
-    {
-        TestSplay(10000);
-    }
-    catch (exception e)
-    {
-        Error(vect, shuffler);
-    }
+    TestSplay(10000);
+    
     system("pause");
     return 0;
 }
