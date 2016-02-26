@@ -8,6 +8,7 @@
 #include <cassert>
 #include <random>
 #include <numeric>
+#include <ctime>
 using namespace std;
 
 #ifdef _DEBUG

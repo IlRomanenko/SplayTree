@@ -46,13 +46,13 @@ void Error(vector<int> &vect, Shuffler &shuffler)
 Shuffler shuffler;
 vector<int> vect;
 uniform_int_distribution<int> random;
-default_random_engine engine;
+default_random_engine engine(time(NULL));
 
 void TestSplay(int amount_operations)
 {
     int oper, l, r, value;
 
-    const int MaxValue = 1000000;
+    const int MaxValue = 100000;
 
     for (int i = 0; i < amount_operations; i++)
     {
@@ -78,8 +78,10 @@ void TestSplay(int amount_operations)
 
        /* dbg(
         cout << "before " << oper << "   i = " << i << endl << endl;
+        cout << "shuffler = ";
         shuffler.Print();
         cout << endl << endl;
+        cout << "vector   = ";
         for_each(vect.begin(), vect.end(), [](int x) { cout << x << ' '; });
         cout << endl << endl << endl << endl;
         );*/
@@ -88,6 +90,7 @@ void TestSplay(int amount_operations)
         case 0:
             if (accumulate(vect.begin() + l, vect.begin() + r + 1, 0) != shuffler.GetSum(l, r))
             {
+                cout << "error number = " << i << " sum with l = " << l << " and r = " << r << endl;
                 Error(vect, shuffler);
                 return;
             }
@@ -101,8 +104,8 @@ void TestSplay(int amount_operations)
             shuffler.Replace(l, value);
             break;
         case 3:
-            //for_each(vect.begin() + l, vect.begin() + r + 1, [value](int &x) mutable { x += value; });
-            //shuffler.AddValue(l, r, value);
+            for_each(vect.begin() + l, vect.begin() + r + 1, [value](int &x) mutable { x += value; });
+            shuffler.AddValue(l, r, value);
             break;
         case 4:
             next_permutation(vect.begin() + l, vect.begin() + r + 1);
