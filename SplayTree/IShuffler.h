@@ -11,4 +11,5 @@ public:
     virtual void NextPermutation(int l, int r) = 0;
     virtual bool CanPermutate() = 0;
     virtual void Print() = 0;
+    virtual int Size() = 0;
 };

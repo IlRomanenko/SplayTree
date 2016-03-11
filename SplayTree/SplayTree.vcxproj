@@ -126,7 +126,6 @@
     <ClInclude Include="base.h" />
     <ClInclude Include="IShuffler.h" />
     <ClInclude Include="Shuffler.h" />
-    <ClInclude Include="SplayTree.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="output.txt" />

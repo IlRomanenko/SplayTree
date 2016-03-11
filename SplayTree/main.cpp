@@ -76,15 +76,6 @@ void TestSplay(int amount_operations)
         }
         value = random(engine) % MaxValue;
 
-       /* dbg(
-        cout << "before " << oper << "   i = " << i << endl << endl;
-        cout << "shuffler = ";
-        shuffler.Print();
-        cout << endl << endl;
-        cout << "vector   = ";
-        for_each(vect.begin(), vect.end(), [](int x) { cout << x << ' '; });
-        cout << endl << endl << endl << endl;
-        );*/
         switch (oper)
         {
         case 0:
@@ -129,10 +120,9 @@ void TestSplay(int amount_operations)
 
 int main()
 {
-    //freopen("output.txt", "w", stdout);
-    //SimpleTestSplay();
+    SimpleTestSplay();
     TestSplay(10000);
-    
+
     system("pause");
     return 0;
 }
