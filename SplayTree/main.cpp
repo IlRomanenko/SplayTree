@@ -33,7 +33,7 @@ void SimpleTestSplay()
     fclose(stdout);
 }
 
-void Error(vector<int> &vect, Shuffler &shuffler)
+void Error(vector<long long> &vect, Shuffler &shuffler)
 {
     cout << "Error" << endl;
     for_each(vect.begin(), vect.end(), [](int x) { cout << x << ' '; });
@@ -44,7 +44,7 @@ void Error(vector<int> &vect, Shuffler &shuffler)
 
 
 Shuffler shuffler;
-vector<int> vect;
+vector<long long> vect;
 uniform_int_distribution<int> random;
 default_random_engine engine(time(NULL));
 
@@ -52,7 +52,7 @@ void TestSplay(int amount_operations)
 {
     int oper, l, r, value;
 
-    const int MaxValue = 100000;
+    const int MaxValue = 1000;
 
     for (int i = 0; i < amount_operations; i++)
     {
@@ -79,7 +79,7 @@ void TestSplay(int amount_operations)
         switch (oper)
         {
         case 0:
-            if (accumulate(vect.begin() + l, vect.begin() + r + 1, 0) != shuffler.GetSum(l, r))
+            if (accumulate(vect.begin() + l, vect.begin() + r + 1, 0LL) != shuffler.GetSum(l, r))
             {
                 cout << "error number = " << i << " sum with l = " << l << " and r = " << r << endl;
                 Error(vect, shuffler);
@@ -95,7 +95,7 @@ void TestSplay(int amount_operations)
             shuffler.Replace(l, value);
             break;
         case 3:
-            for_each(vect.begin() + l, vect.begin() + r + 1, [value](int &x) mutable { x += value; });
+            for_each(vect.begin() + l, vect.begin() + r + 1, [value](long long &x) mutable { x += value; });
             shuffler.AddValue(l, r, value);
             break;
         case 4:
@@ -109,19 +109,19 @@ void TestSplay(int amount_operations)
             cout << "Bad size";
             return;
         }
-        if (shuffler.GetSum(0, vect.size() - 1) != accumulate(vect.begin(), vect.end(), 0))
+        /*if (shuffler.GetSum(0, vect.size() - 1) != accumulate(vect.begin(), vect.end(), 0))
         {
             Error(vect, shuffler);
             cout << "Bad sum";
             return;
-        }
+        }*/
     }
 }
 
 int main()
 {
-    SimpleTestSplay();
-    TestSplay(10000);
+
+    TestSplay(1000000);
 
     system("pause");
     return 0;

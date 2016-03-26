@@ -4,10 +4,13 @@
 
 class Shuffler : IShuffler
 {
+
+    //Internal tree's representation
     struct SplayTreeNode
     {
-        int top_left, top_right, size;
-        int to_add, value, sum;
+        long long top_left, top_right;
+        size_t size;
+        long long to_add, value, sum;
         bool rev, is_sorted, is_rev_sorted;
 
         shared_ptr<SplayTreeNode> left, right;
@@ -15,7 +18,7 @@ class Shuffler : IShuffler
 
         SplayTreeNode() = delete;
 
-        SplayTreeNode(int n_value)
+        SplayTreeNode(long long n_value)
         {
             top_left = top_right = value = sum = n_value;
             rev = false;
@@ -29,41 +32,49 @@ class Shuffler : IShuffler
 
     typedef weak_ptr<SplayTreeNode> pTree;
     typedef shared_ptr<SplayTreeNode> PtrTree;
+    
 
-    bool IsExist(const pTree root)
+    //Check, that someone has strong link to root
+    //Similar to compare with nullptr
+    bool IsExist(const pTree& root) const
     {
         return !root.expired();
     }
 
-    int GetSize(const PtrTree root)
+    //Return size of tree
+    size_t GetSize(const PtrTree& root) const
     {
         if (!IsExist(root))
             return 0;
         return root->size;
     }
 
-    int GetSum(const PtrTree root)
+    //Return sum of tree
+    long long GetSum(const PtrTree& root) const
     {
         if (!IsExist(root))
             return 0;
         return root->sum;
     }
 
-    bool IsSorted(const PtrTree root)
+    bool IsSorted(const PtrTree& root) const
     {
         if (!IsExist(root))
             return true;
         return root->is_sorted;
     }
 
-    bool IsRevSorted(const PtrTree root)
+    bool IsRevSorted(const PtrTree& root) const
     {
         if (!IsExist(root))
             return true;
         return root->is_rev_sorted;
     }
 
-    void UpdateValues(PtrTree root)
+
+    //Update size, sum and top left, top right value for node
+    //Also check sorting of node
+    void UpdateValues(PtrTree& root)
     {
         if (!IsExist(root))
             return;
@@ -109,7 +120,9 @@ class Shuffler : IShuffler
             root->is_rev_sorted = false;
     }
 
-    void Push(PtrTree root)
+    //Push reverse flag and additional sum for children 
+    //Also swap children if reverse is true
+    void Push(PtrTree& root)
     {
         if (!IsExist(root))
             return;
@@ -164,7 +177,9 @@ class Shuffler : IShuffler
         UpdateValues(root->right);
     }
 
-    void Lock(PtrTree root)
+    //Execute Push and UpdateValue, so after this function
+    //node is already up to date
+    void Lock(PtrTree& root)
     {
         if (!IsExist(root))
             return;
@@ -172,7 +187,8 @@ class Shuffler : IShuffler
         UpdateValues(root);
     }
 
-    void KeepParent(PtrTree root)
+    //Set children parent's itself 
+    void KeepParent(PtrTree& root)
     {
         if (!IsExist(root))
             return;
@@ -182,7 +198,8 @@ class Shuffler : IShuffler
             root->right->parent = root;
     }
 
-    void ReleaseChild(PtrTree root)
+    //Set, that children of node doesn't have parent
+    void ReleaseChild(PtrTree& root)
     {
         if (!IsExist(root))
             return;
@@ -192,6 +209,7 @@ class Shuffler : IShuffler
             root->right->parent = pTree();
     }
 
+    //Set, that node doesn't have parent
     void ReleaseParent(PtrTree root)
     {
         if (!IsExist(root))
@@ -199,7 +217,8 @@ class Shuffler : IShuffler
         root->parent = pTree();
     }
 
-    void Split(PtrTree root, PtrTree &Left, PtrTree &Right, int count)
+    //Split in two parts. Size of left part <= count
+    void Split(PtrTree root, PtrTree &Left, PtrTree &Right, size_t count)
     {
         Lock(root);
         ReleaseChild(root);
@@ -227,7 +246,8 @@ class Shuffler : IShuffler
         Lock(Right);
     }
 
-    void LeftRotation(PtrTree node)
+    //Rotate left through node
+    void LeftRotation(PtrTree& node)
     {
         pTree parent = node->parent;
         PtrTree child = node->right;
@@ -240,7 +260,7 @@ class Shuffler : IShuffler
             else if (node == strong_parent->right)
                 strong_parent->right = child;
             else
-                assert(false);
+                assert(false); //check for undefined behaviour
         }
 
         child->parent = parent;
@@ -252,7 +272,8 @@ class Shuffler : IShuffler
         Lock(child);
     }
 
-    void RightRotation(PtrTree node)
+    //Rotate right through node
+    void RightRotation(PtrTree& node)
     {
         pTree parent = node->parent;
         PtrTree child = node->left;
@@ -265,7 +286,7 @@ class Shuffler : IShuffler
             else if (node == strong_parent->right)
                 strong_parent->right = child;
             else
-                assert(false);
+                assert(false); //check for undefined behaviour
         }
 
         child->parent = parent;
@@ -277,7 +298,8 @@ class Shuffler : IShuffler
         Lock(child);
     }
 
-    PtrTree Splay(PtrTree root)
+    //Pull node up
+    PtrTree Splay(PtrTree& root)
     {
         if (!IsExist(root))
             return nullptr;
@@ -325,14 +347,15 @@ class Shuffler : IShuffler
                 LeftRotation(parent);
             }
             else
-                assert(false);
+                assert(false); //check for undefined behaviour
 
             return Splay(root);
         }
     }
 
+    //Find root, in which left part size plus root == count
     //Using with count >= 1
-    PtrTree Find(PtrTree root, int count)
+    PtrTree Find(PtrTree& root, size_t count)
     {
         Lock(root);
 
@@ -348,8 +371,10 @@ class Shuffler : IShuffler
             return Find(root->right, count - GetSize(root->left) - 1);
     }
 
+    //Split in three part. Size of first part is l - 1
+    //Size of middle part is r - l
     //Using with [l, r] where l >= 1
-    vector<PtrTree> Split3(PtrTree root, int l, int r)
+    vector<PtrTree> Split3(PtrTree& root, int l, int r)
     {
         PtrTree left, middle, right;
         Split(root, left, right, l - 1);
@@ -361,7 +386,8 @@ class Shuffler : IShuffler
         return{ left, middle, right };
     }
 
-    PtrTree Merge(PtrTree Left, PtrTree Right)
+    //Merge two parts, result is a new root
+    PtrTree Merge(PtrTree& Left, PtrTree& Right)
     {
         Lock(Left);
         Lock(Right);
@@ -377,7 +403,8 @@ class Shuffler : IShuffler
         return Right;
     }
 
-    int CountRevSorted(PtrTree root)
+    //Count the biggest reverse sorted suffix
+    size_t CountRevSorted(PtrTree& root)
     {
         Lock(root);
         Lock(root->left);
@@ -413,7 +440,8 @@ class Shuffler : IShuffler
         return result;
     }
 
-    PtrTree FindLeastBig(PtrTree root, int pivot)
+    //Find the leftest node from suffix, that doesn't less than pivot
+    PtrTree FindLeastBig(PtrTree& root, long long pivot)
     {
         Lock(root);
 
@@ -432,7 +460,8 @@ class Shuffler : IShuffler
         return result;
     }
 
-    PtrTree GenPermutation(PtrTree root)
+    //Generate a new permutation for all tree
+    PtrTree GenPermutation(PtrTree& root)
     {
         Lock(root);
 
@@ -457,6 +486,7 @@ class Shuffler : IShuffler
         Lock(pivot);
         Lock(right);
 
+        assert(IsRevSorted(right));
         PtrTree n_element = Splay(FindLeastBig(right, pivot->value));
         Lock(n_element);
         swap(pivot->value, n_element->value);
@@ -468,8 +498,9 @@ class Shuffler : IShuffler
         return root;
     }
 
+    //Generate permutation for subsequence from l to r
     //Using with [l, r] where l >= 1 and r >= l
-    PtrTree SplayNextPermutation(PtrTree root, int l, int r)
+    PtrTree SplayNextPermutation(PtrTree& root, int l, int r)
     {
         auto v_split = Split3(root, l, r);
         v_split[1] = GenPermutation(v_split[1]);
@@ -477,7 +508,8 @@ class Shuffler : IShuffler
         return Merge(Merge(v_split[0], v_split[1]), v_split[2]);
     }
 
-    void PrintTree(PtrTree root)
+    //Print all tree
+    void PrintTree(PtrTree& root)
     {
         if (!IsExist(root))
             return;
@@ -492,67 +524,70 @@ public:
 
     Shuffler()
     {
-        root = nullptr;
+        shf_root = nullptr;
     }
 
     void Print() override
     {
-        PrintTree(root);
+        PrintTree(shf_root);
     }
 
-    int GetSum(int l, int r) override
+    long long GetSum(int l, int r) override
     {
         PtrTree left, right, middle;
-        auto v_split = Split3(root, l + 1, r + 1);
+        auto v_split = Split3(shf_root, l + 1, r + 1);
         left = v_split[0];
         middle = v_split[1];
         right = v_split[2];
 
-        int result = GetSum(middle);
+        long long result = GetSum(middle);
 
-        root = Merge(Merge(left, middle), right);
+        shf_root = Merge(Merge(left, middle), right);
+        Lock(shf_root);
 
         return result;
     }
 
-    int Size() override
+    size_t Size() const override
     {
-        return GetSize(root);
+        return GetSize(shf_root);
     }
 
-    void Insert(int position, int value) override
+    void Insert(int position, long long value) override
     {
         PtrTree left, right;
-        Split(root, left, right, position);
-        root = Merge(Merge(left, PtrTree(new SplayTreeNode(value))), right);
+        Split(shf_root, left, right, position);
+        shf_root = Merge(Merge(left, PtrTree(new SplayTreeNode(value))), right);
+        Lock(shf_root);
     }
 
-    void Replace(int position, int value) override
+    void Replace(int position, long long value) override
     {
-        root = Splay(Find(root, position + 1));
-        root->value = value;
-        Lock(root);
+        shf_root = Splay(Find(shf_root, position + 1));
+        shf_root->value = value;
+        Lock(shf_root);
     }
 
-    void AddValue(int l, int r, int value) override
+    void AddValue(int l, int r, long long value) override
     {
-        auto v_split = Split3(root, l + 1, r + 1);
+        auto v_split = Split3(shf_root, l + 1, r + 1);
         v_split[1]->to_add += value;
         Lock(v_split[1]);
-        root = Merge(Merge(v_split[0], v_split[1]), v_split[2]);
+        shf_root = Merge(Merge(v_split[0], v_split[1]), v_split[2]);
+        Lock(shf_root);
     }
 
-    bool CanPermutate() override
+    bool CanPermutate() const override
     {
-        Lock(root);
-        return !root->is_rev_sorted;
+        return !shf_root->is_rev_sorted;
     }
 
     void NextPermutation(int l, int r) override
     {
-        root = SplayNextPermutation(root, l + 1, r + 1);
+        shf_root = SplayNextPermutation(shf_root, l + 1, r + 1);
+        Lock(shf_root);
     }
 
 private:
-    PtrTree root;
+    PtrTree shf_root;
 };
